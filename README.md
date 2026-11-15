@@ -64,3 +64,7 @@ The server will then run in the background at every login, with no window.
 - **Search and Up next** read YouTube's public pages (no API key). If YouTube changes its page format, these may
   break, but the playback controls keep working.
 - The port is `8787`. If you change it (`PORT=xxxx`), also change `SERVER_URL` in `extension/background.js`.
+
+## License
+
+[MIT](LICENSE)

@@ -4,6 +4,7 @@
   "description": "Local relay server for the YouTube bed remote",
   "main": "server.js",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "start": "node server.js"
   },
