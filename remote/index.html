@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="YT Remote">
+<title>YT Remote</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+  :root {
+    --bg: #000;
+    --card: #121212;
+    --card2: #1c1c1c;
+    --line: #2a2a2a;
+    --text: #ececec;
+    --muted: #8a8a8a;
+    --accent: #e8453c;
+    --accent-dim: #3a1513;
+    --ok: #3ecf6e;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { padding: max(14px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); max-width: 520px; margin: 0 auto; user-select: none; }
+  body.dim { filter: brightness(0.55); }
+  button { font: inherit; color: inherit; background: var(--card2); border: 0; border-radius: 14px; cursor: pointer; touch-action: manipulation; }
+  button:active { transform: scale(0.95); filter: brightness(1.3); }
+  button:disabled { opacity: .35; }
+  svg { width: 26px; height: 26px; fill: currentColor; display: block; }
+
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  header h1 { font-size: 17px; margin: 0; flex: 1; letter-spacing: .2px; }
+  .conn { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #666; }
+  .dot.on { background: var(--ok); } .dot.off { background: var(--accent); }
+  .icon-btn { width: 40px; height: 40px; display: grid; place-items: center; background: transparent; }
+  .icon-btn svg { width: 22px; height: 22px; }
+
+  .card { background: var(--card); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+  .banner { background: var(--accent-dim); color: #ffb4ae; border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; font-size: 14px; display: none; }
+  .banner.show { display: block; }
+
+  .now { display: flex; gap: 12px; align-items: center; }
+  .thumb { width: 112px; aspect-ratio: 16/9; border-radius: 10px; background: var(--card2) center/cover no-repeat; flex: none; }
+  .meta { min-width: 0; }
+  .title { font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .channel { color: var(--muted); font-size: 13px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 6px; background: #f5c518; color: #000; font-weight: 700; margin-left: 6px; vertical-align: middle; }
+
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 32px; background: transparent; margin: 0; }
+  input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(var(--accent), var(--accent)) 0/var(--p, 0%) 100% no-repeat, #333; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%; background: #fff; }
+  input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: #333; }
+  input[type=range]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--accent); }
+  input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 50%; background: #fff; }
+  .times { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: -4px; font-variant-numeric: tabular-nums; }
+
+  .transport { display: grid; grid-template-columns: 1fr 1fr 1.5fr 1fr 1fr; gap: 10px; align-items: center; margin: 6px 0 4px; }
+  .transport button { height: 64px; display: grid; place-items: center; }
+  .transport .big { height: 84px; border-radius: 26px; background: var(--accent); color: #fff; }
+  .transport .big svg { width: 40px; height: 40px; }
+
+  .vol { display: grid; grid-template-columns: 52px 52px 1fr 52px; gap: 10px; align-items: center; }
+  .vol button { height: 52px; display: grid; place-items: center; }
+  .vol .val { text-align: center; font-size: 12px; color: var(--muted); margin-top: -2px; font-variant-numeric: tabular-nums; }
+  .vol button.on { color: var(--accent); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 10px 14px; border-radius: 999px; font-size: 14px; }
+  .chip.on { background: var(--accent); color: #fff; }
+  .chip.ad { background: #f5c518; color: #000; font-weight: 600; display: none; }
+  .chip.ad.show { display: inline-block; }
+
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .timer-active { text-align: center; }
+  .countdown { font-size: 44px; font-weight: 300; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+  .timer-sub { color: var(--muted); font-size: 13px; margin: 2px 0 12px; }
+  .timer-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .timer-actions button { height: 48px; }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: var(--card2); padding: 4px; border-radius: 14px; margin-top: 12px; }
+  .seg button { background: transparent; padding: 9px 4px; font-size: 13px; border-radius: 10px; }
+  .seg button.on { background: #333; }
+  .check { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 13px; margin-top: 10px; }
+  .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+  .tabs button { flex: 1; height: 40px; background: transparent; border: 1px solid var(--line); }
+  .tabs button.on { background: var(--card2); border-color: transparent; }
+  form.search { display: flex; gap: 8px; margin-bottom: 10px; }
+  form.search input { flex: 1; min-width: 0; height: 48px; border-radius: 14px; border: 1px solid var(--line); background: var(--card2); color: var(--text); padding: 0 14px; font: inherit; font-size: 16px; }
+  form.search button { width: 56px; height: 48px; display: grid; place-items: center; }
+  .results { display: flex; flex-direction: column; gap: 4px; }
+  .result { display: flex; gap: 10px; text-align: left; background: transparent; padding: 6px; border-radius: 12px; align-items: flex-start; }
+  .result .rthumb { width: 132px; aspect-ratio: 16/9; flex: none; border-radius: 9px; background: var(--card2) center/cover no-repeat; position: relative; }
+  .result .len { position: absolute; right: 4px; bottom: 4px; background: rgba(0,0,0,.8); font-size: 11px; padding: 1px 4px; border-radius: 4px; }
+  .result .rtitle { font-size: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .result .rsub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 14px 0; }
+
+  .laptop { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .laptop button { height: 52px; display: flex; gap: 8px; align-items: center; justify-content: center; font-size: 14px; }
+  .laptop svg { width: 20px; height: 20px; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.92); display: none; align-items: center; justify-content: center; padding: 24px; z-index: 10; }
+  .overlay.show { display: flex; }
+  .pair { width: 100%; max-width: 340px; text-align: center; }
+  .pair input { width: 100%; height: 60px; font-size: 28px; letter-spacing: 10px; text-align: center; border-radius: 16px; border: 1px solid var(--line); background: var(--card2); color: var(--text); margin: 16px 0 12px; }
+  .pair button { width: 100%; height: 52px; background: var(--accent); color: #fff; font-weight: 600; }
+  .pair .err { color: #ff8a80; min-height: 20px; font-size: 14px; }
+  .confirm { width: 100%; max-width: 340px; background: var(--card); border-radius: var(--radius); padding: 18px; text-align: center; }
+  .confirm .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .confirm .btns button { height: 48px; }
+  .confirm .btns .danger { background: var(--accent); color: #fff; }
+
+  .toast { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px); background: #2b2b2b; padding: 10px 16px; border-radius: 12px; font-size: 14px; opacity: 0; transition: .2s; pointer-events: none; max-width: calc(100% - 32px); z-index: 20; }
+  .toast.show { opacity: 1; transform: translateX(-50%); }
+</style>
+</head>
+<body>
+<header>
+  <h1>YT Remote</h1>
+  <div class="conn"><span id="dot" class="dot"></span><span id="connLabel">Connecting…</span></div>
+  <button class="icon-btn" id="dimBtn" title="Dim this page">
+    <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.39 5.39 0 0 1-4.4 2.26 5.4 5.4 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>
+  </button>
+</header>
+
+<div id="banner" class="banner"></div>
+
+<!-- Now playing -->
+<section class="card">
+  <div class="now">
+    <div id="thumb" class="thumb"></div>
+    <div class="meta">
+      <div class="title" id="title">Nothing playing</div>
+      <div class="channel" id="channel">Open a YouTube video on the laptop</div>
+    </div>
+  </div>
+  <input id="seek" type="range" min="0" max="1000" value="0" style="margin-top:10px">
+  <div class="times"><span id="cur">0:00</span><span id="dur">0:00</span></div>
+
+  <div class="transport">
+    <button data-cmd="prev" title="Previous"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
+    <button data-cmd="seekBy" data-value="-10" title="Back 10s"><svg viewBox="0 0 24 24"><path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8zm-1.1 11h-.85v-3.26l-1.01.31v-.69l1.77-.63h.09V16zm4.28-1.76c0 .32-.03.6-.1.82s-.17.42-.29.57-.28.26-.45.33-.37.1-.59.1-.41-.03-.59-.1-.33-.18-.46-.33-.23-.34-.3-.57-.11-.5-.11-.82v-.74c0-.32.03-.6.1-.82s.17-.42.29-.57.28-.26.45-.33.37-.1.59-.1.41.03.59.1.33.18.46.33.23.34.3.57.11.5.11.82v.74zm-.85-.86c0-.19-.01-.35-.04-.48s-.07-.23-.12-.31-.11-.14-.19-.17-.16-.05-.25-.05-.18.02-.25.05-.14.09-.19.17-.09.18-.12.31-.04.29-.04.48v.97c0 .19.01.35.04.48s.07.24.12.32.11.14.19.17.16.05.25.05.18-.02.25-.05.14-.09.19-.17.09-.19.11-.32.04-.29.04-.48v-.97z"/></svg></button>
+    <button data-cmd="toggle" class="big" id="playBtn" title="Play / pause">
+      <svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+    <button data-cmd="seekBy" data-value="10" title="Forward 10s"><svg viewBox="0 0 24 24"><path d="M18 13c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6v4l5-5-5-5v4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8h-2zm-7.46 2.22c-.06.05-.12.09-.2.12s-.17.04-.27.04a.9.9 0 0 1-.3-.05.7.7 0 0 1-.23-.13.61.61 0 0 1-.15-.2.63.63 0 0 1-.06-.25h-.85c0 .21.04.4.12.56s.18.3.32.42.29.21.47.28.38.09.58.09c.22 0 .42-.03.61-.09s.35-.15.48-.26.24-.25.31-.42.11-.35.11-.56c0-.23-.05-.43-.16-.6s-.29-.3-.54-.39c.1-.05.2-.1.28-.17s.15-.14.2-.22.1-.16.13-.25.04-.18.04-.27c0-.2-.04-.37-.1-.53s-.17-.28-.29-.38-.28-.18-.46-.23-.37-.08-.59-.08c-.19 0-.38.03-.54.08s-.32.13-.44.23-.23.22-.3.37-.11.3-.11.48h.85a.43.43 0 0 1 .14-.33c.04-.04.1-.08.16-.1s.14-.04.22-.04c.18 0 .32.05.41.15s.13.23.13.4c0 .09-.01.16-.04.24s-.06.13-.11.18-.11.09-.18.12-.17.04-.27.04h-.48v.65h.48c.1 0 .19.01.27.04s.15.06.2.11.1.11.13.19.04.16.04.26c0 .1-.01.19-.04.27s-.07.14-.13.19zm3.62-3.57c-.18-.07-.37-.1-.59-.1s-.41.03-.59.1-.33.18-.45.33-.23.34-.29.57-.1.5-.1.82v.74c0 .32.04.6.11.82s.17.42.3.57.28.26.46.33.37.1.59.1.41-.03.59-.1.33-.18.45-.33.22-.34.29-.57.1-.5.1-.82v-.74c0-.32-.04-.6-.11-.82s-.17-.42-.3-.57-.28-.26-.46-.33zm.01 2.57c0 .19-.01.35-.04.48s-.06.24-.11.32-.11.14-.19.17-.16.05-.25.05-.18-.02-.25-.05-.14-.09-.19-.17-.09-.19-.12-.32-.04-.29-.04-.48v-.97c0-.19.01-.35.04-.48s.06-.23.12-.31.11-.14.19-.17.16-.05.25-.05.18.02.25.05.14.09.19.17.09.18.12.31.04.29.04.48v.97z"/></svg></button>
+    <button data-cmd="next" title="Next"><svg viewBox="0 0 24 24"><path d="m6 18 8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+  </div>
+</section>
+
+<!-- Volume + extras -->
+<section class="card">
+  <div class="vol">
+    <button data-cmd="mute" id="muteBtn" title="Mute"><svg viewBox="0 0 24 24" id="muteIcon"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg></button>
+    <button data-cmd="volumeBy" data-value="-5" title="Volume down"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></button>
+    <div>
+      <input id="vol" type="range" min="0" max="100" value="50">
+      <div class="val" id="volVal">–</div>
+    </div>
+    <button data-cmd="volumeBy" data-value="5" title="Volume up"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+  </div>
+  <div class="chips" style="margin-top:12px">
+    <button class="chip" id="speedBtn">Speed 1×</button>
+    <button class="chip" id="ccBtn" data-cmd="captions">Captions</button>
+    <button class="chip" id="theaterBtn" data-cmd="theater">Theater</button>
+    <button class="chip ad" id="adBtn" data-cmd="skipAd">Skip ad</button>
+  </div>
+</section>
+
+<!-- Sleep timer -->
+<section class="card" id="timerCard">
+  <h2>Sleep timer</h2>
+  <div id="timerActive" class="timer-active" hidden>
+    <div class="countdown" id="countdown">00:00</div>
+    <div class="timer-sub" id="timerSub"></div>
+    <div class="timer-actions">
+      <button id="timerAdd">+15 min</button>
+      <button id="timerCancel">Cancel</button>
+    </div>
+  </div>
+  <div id="timerSetup">
+    <div class="chips">
+      <button class="chip" data-min="15">15m</button>
+      <button class="chip" data-min="30">30m</button>
+      <button class="chip" data-min="45">45m</button>
+      <button class="chip" data-min="60">1h</button>
+      <button class="chip" data-min="90">1.5h</button>
+      <button class="chip" data-min="120">2h</button>
+      <button class="chip" data-end="1">End of video</button>
+    </div>
+    <div class="seg" id="actionSeg">
+      <button data-action="pause" class="on">Just pause</button>
+      <button data-action="monitor">+ Screen off</button>
+      <button data-action="sleep">+ Sleep PC</button>
+    </div>
+    <label class="check"><input type="checkbox" id="fade" checked> Fade volume out over the last minute</label>
+  </div>
+</section>
+
+<!-- Search / Up next -->
+<section class="card">
+  <div class="tabs">
+    <button id="tabSearch" class="on">Search</button>
+    <button id="tabRelated">Up next</button>
+  </div>
+  <form class="search" id="searchForm" autocomplete="off">
+    <input id="q" type="search" placeholder="Search or paste a YouTube link" enterkeyhint="search">
+    <button type="submit" title="Search"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
+  </form>
+  <div class="results" id="results"><div class="empty">Search for something to watch</div></div>
+</section>
+
+<!-- Laptop -->
+<section class="card">
+  <h2>Laptop</h2>
+  <div class="laptop">
+    <button id="monitorBtn"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>Screen off</button>
+    <button id="sleepBtn"><svg viewBox="0 0 24 24"><path d="M9 2c-1.05 0-2.05.16-3 .46 4.06 1.27 7 5.06 7 9.54 0 4.48-2.94 8.27-7 9.54.95.3 1.95.46 3 .46 5.52 0 10-4.48 10-10S14.52 2 9 2z"/></svg>Sleep PC</button>
+  </div>
+</section>
+
+<!-- Pair overlay -->
+<div class="overlay" id="pairOverlay">
+  <form class="pair" id="pairForm">
+    <h1 style="font-size:20px;margin:0">Pair with your laptop</h1>
+    <p style="color:var(--muted);margin:8px 0 0">Enter the 6-digit PIN shown in the server window.</p>
+    <input id="pinInput" inputmode="numeric" pattern="\d*" maxlength="6" autocomplete="one-time-code">
+    <div class="err" id="pairErr"></div>
+    <button type="submit">Connect</button>
+  </form>
+</div>
+
+<!-- Confirm overlay -->
+<div class="overlay" id="confirmOverlay">
+  <div class="confirm">
+    <div id="confirmText"></div>
+    <div class="btns"><button id="confirmNo">Cancel</button><button class="danger" id="confirmYes">Yes</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const ICON_PLAY = '<path d="M8 5v14l11-7z"/>';
+  const ICON_PAUSE = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+  const ICON_VOL = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>';
+  const ICON_MUTED = '<path d="M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z"/>';
+  const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
+
+  // ---------- PIN ----------
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+    del(k) { try { localStorage.removeItem(k); } catch {} },
+  };
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('pin')) {
+    store.set('pin', qs.get('pin'));
+    history.replaceState(null, '', location.pathname); // keep the PIN out of the visible URL
+  }
+
+  // ---------- state ----------
+  let ws = null, authFailed = false, reconnectTimer = null;
+  let status = null, timer = null, extConnected = false;
+  let seeking = false, volDragUntil = 0, lastVolSend = 0;
+  let action = store.get('timerAction') || 'pause';
+  let resultsTab = 'search';
+
+  // ---------- connection ----------
+  function connect() {
+    const pin = store.get('pin');
+    if (!pin) return showPair();
+    if (ws && ws.readyState <= 1) return;
+    authFailed = false;
+    setConn('wait', 'Connecting…');
+    ws = new WebSocket(`ws://${location.host}/remote?pin=${encodeURIComponent(pin)}`);
+    ws.onmessage = (e) => onMessage(JSON.parse(e.data));
+    ws.onclose = () => {
+      ws = null;
+      if (authFailed) return;
+      setConn('off', 'Offline');
+      clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(connect, 2000);
+    };
+  }
+  function send(msg) {
+    if (ws && ws.readyState === 1) { ws.send(JSON.stringify(msg)); return true; }
+    toast('Not connected to laptop');
+    return false;
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) connect(); });
+
+  function onMessage(m) {
+    switch (m.type) {
+      case 'auth':
+        if (m.ok) { $('pairOverlay').classList.remove('show'); setConn('on', 'Connected'); }
+        else { authFailed = true; store.del('pin'); showPair(m.reason); }
+        break;
+      case 'ext': extConnected = m.connected; if (!m.connected) status = null; render(); break;
+      case 'status': status = m.status; render(); break;
+      case 'timer': timer = m.timer; renderTimer(); break;
+      case 'results': if (m.kind === resultsTab) renderResults(m.results, m.kind); break;
+      case 'toast': toast(m.text); break;
+    }
+  }
+
+  function setConn(kind, label) {
+    $('dot').className = 'dot ' + (kind === 'on' ? 'on' : kind === 'off' ? 'off' : '');
+    $('connLabel').textContent = label;
+  }
+
+  function showPair(err) {
+    $('pairErr').textContent = err || '';
+    $('pairOverlay').classList.add('show');
+    setConn('off', 'Not paired');
+    setTimeout(() => $('pinInput').focus(), 50);
+  }
+  $('pairForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const pin = $('pinInput').value.trim();
+    if (!/^\d{6}$/.test(pin)) return ($('pairErr').textContent = 'PIN is 6 digits');
+    store.set('pin', pin);
+    $('pinInput').blur();
+    connect();
+  });
+
+  // ---------- rendering ----------
+  const fmt = (s) => {
+    if (!isFinite(s) || s < 0) s = 0;
+    s = Math.floor(s);
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(sec).padStart(2, '0');
+  };
+  const setFill = (el) => el.style.setProperty('--p', (el.value - el.min) / (el.max - el.min) * 100 + '%');
+
+  function render() {
+    const banner = $('banner');
+    let warn = '';
+    if (!extConnected) warn = 'The laptop is not connected. Make sure Chrome is open with the YT Remote extension.';
+    else if (status && status.page === 'none') warn = 'No YouTube tab is open on the laptop. Search below to start one.';
+    else if (status && status.page === 'other') warn = 'YouTube is open, but no video is playing. Pick one below.';
+    banner.textContent = warn;
+    banner.classList.toggle('show', !!warn);
+
+    const s = status && status.page === 'watch' ? status : null;
+    $('title').innerHTML = '';
+    $('title').textContent = s ? (s.title || 'Loading…') : 'Nothing playing';
+    if (s && s.ad) { const t = document.createElement('span'); t.className = 'tag'; t.textContent = 'AD'; $('title').append(t); }
+    $('channel').textContent = s ? (s.channel || '') : 'Open a YouTube video on the laptop';
+    $('thumb').style.backgroundImage = s && s.videoId ? `url(https://i.ytimg.com/vi/${s.videoId}/mqdefault.jpg)` : '';
+
+    const playing = s && (s.state === 'playing' || s.state === 'buffering');
+    $('playIcon').innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+
+    if (s && !seeking) {
+      const seek = $('seek');
+      seek.disabled = s.isLive;
+      seek.value = s.duration ? Math.round(s.currentTime / s.duration * 1000) : 0;
+      setFill(seek);
+      $('cur').textContent = fmt(s.currentTime);
+      $('dur').textContent = s.isLive ? 'LIVE' : fmt(s.duration);
+    } else if (!s) {
+      $('seek').value = 0; setFill($('seek'));
+      $('cur').textContent = $('dur').textContent = '0:00';
+    }
+
+    if (s && Date.now() > volDragUntil) {
+      $('vol').value = s.volume; setFill($('vol'));
+      $('volVal').textContent = s.muted ? 'Muted' : s.volume + '%';
+    }
+    $('muteIcon').innerHTML = s && s.muted ? ICON_MUTED : ICON_VOL;
+    $('muteBtn').classList.toggle('on', !!(s && s.muted));
+    $('speedBtn').textContent = 'Speed ' + (s ? s.rate : 1) + '×';
+    $('speedBtn').classList.toggle('on', !!(s && s.rate !== 1));
+    $('ccBtn').classList.toggle('on', !!(s && s.captions));
+    $('theaterBtn').classList.toggle('on', !!(s && s.theater));
+    $('adBtn').classList.toggle('show', !!(s && s.ad));
+  }
+
+  function renderTimer() {
+    $('timerActive').hidden = !timer;
+    $('timerSetup').hidden = !!timer;
+    if (timer) tickTimer();
+    for (const b of document.querySelectorAll('#actionSeg button')) b.classList.toggle('on', b.dataset.action === action);
+  }
+  function tickTimer() {
+    if (!timer) return;
+    const left = Math.max(0, (timer.endsAt - Date.now()) / 1000);
+    const h = Math.floor(left / 3600), m = Math.floor((left % 3600) / 60), s = Math.floor(left % 60);
+    $('countdown').textContent = (h ? h + ':' : '') + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    const what = { pause: 'then pause', monitor: 'then pause + screen off', sleep: 'then pause + sleep PC' }[timer.action];
+    $('timerSub').textContent = (timer.mode === 'end' ? 'At the end of this video, ' : '') + what + (timer.fading ? ' · fading out…' : '');
+  }
+  setInterval(tickTimer, 1000);
+
+  function renderResults(list, kind) {
+    const box = $('results');
+    box.innerHTML = '';
+    if (!list || !list.length) {
+      box.innerHTML = `<div class="empty">${kind === 'related' ? 'No suggestions found' : 'No results'}</div>`;
+      return;
+    }
+    for (const v of list) {
+      const b = document.createElement('button');
+      b.className = 'result';
+      const th = document.createElement('div');
+      th.className = 'rthumb';
+      th.style.backgroundImage = `url(${v.thumb})`;
+      if (v.length) { const l = document.createElement('span'); l.className = 'len'; l.textContent = v.length; th.append(l); }
+      const meta = document.createElement('div');
+      const t = document.createElement('div'); t.className = 'rtitle'; t.textContent = v.title;
+      const sub = document.createElement('div'); sub.className = 'rsub'; sub.textContent = [v.channel, v.views].filter(Boolean).join(' · ');
+      meta.append(t, sub);
+      b.append(th, meta);
+      b.addEventListener('click', () => { buzz(); if (send({ type: 'load', videoId: v.videoId })) toast('Playing on laptop'); });
+      box.append(b);
+    }
+  }
+
+  // ---------- controls ----------
+  const buzz = () => { try { navigator.vibrate && navigator.vibrate(12); } catch {} };
+
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-cmd]');
+    if (!b) return;
+    buzz();
+    const value = b.dataset.value != null ? Number(b.dataset.value) : undefined;
+    send({ type: 'cmd', cmd: b.dataset.cmd, value });
+    if (b.dataset.cmd === 'toggle' && status && status.page === 'watch') {
+      // optimistic icon flip
+      status.state = status.state === 'playing' ? 'paused' : 'playing';
+      render();
+    }
+  });
+
+  const seek = $('seek');
+  seek.addEventListener('input', () => {
+    seeking = true; setFill(seek);
+    if (status && status.duration) $('cur').textContent = fmt(seek.value / 1000 * status.duration);
+  });
+  seek.addEventListener('change', () => {
+    if (status && status.duration) send({ type: 'cmd', cmd: 'seekTo', value: seek.value / 1000 * status.duration });
+    setTimeout(() => { seeking = false; }, 800);
+  });
+
+  const vol = $('vol');
+  vol.addEventListener('input', () => {
+    setFill(vol);
+    volDragUntil = Date.now() + 1500;
+    $('volVal').textContent = vol.value + '%';
+    if (Date.now() - lastVolSend > 120) { lastVolSend = Date.now(); send({ type: 'cmd', cmd: 'setVolume', value: Number(vol.value) }); }
+  });
+  vol.addEventListener('change', () => {
+    volDragUntil = Date.now() + 1500;
+    send({ type: 'cmd', cmd: 'setVolume', value: Number(vol.value) });
+  });
+
+  $('speedBtn').addEventListener('click', () => {
+    buzz();
+    const cur = status ? status.rate : 1;
+    const next = SPEEDS[(SPEEDS.indexOf(cur) + 1) % SPEEDS.length] || 1;
+    send({ type: 'cmd', cmd: 'speed', value: next });
+  });
+
+  // timer
+  for (const b of document.querySelectorAll('#timerSetup [data-min], #timerSetup [data-end]')) {
+    b.addEventListener('click', () => {
+      buzz();
+      send(b.dataset.end
+        ? { type: 'timer', mode: 'end', action }
+        : { type: 'timer', minutes: Number(b.dataset.min), action, fade: $('fade').checked });
+    });
+  }
+  for (const b of document.querySelectorAll('#actionSeg button')) {
+    b.addEventListener('click', () => { action = b.dataset.action; store.set('timerAction', action); renderTimer(); });
+  }
+  $('fade').checked = store.get('fade') !== '0';
+  $('fade').addEventListener('change', () => store.set('fade', $('fade').checked ? '1' : '0'));
+  $('timerAdd').addEventListener('click', () => { buzz(); send({ type: 'timerAdd', minutes: 15 }); });
+  $('timerCancel').addEventListener('click', () => { buzz(); send({ type: 'timerCancel' }); });
+
+  // search / up next
+  $('searchForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const q = $('q').value.trim();
+    if (!q) return;
+    $('q').blur();
+    $('results').innerHTML = '<div class="empty">Searching…</div>';
+    send({ type: 'search', q });
+  });
+  function setTab(tab) {
+    resultsTab = tab;
+    $('tabSearch').classList.toggle('on', tab === 'search');
+    $('tabRelated').classList.toggle('on', tab === 'related');
+    $('searchForm').hidden = tab !== 'search';
+    $('results').innerHTML = `<div class="empty">${tab === 'related' ? 'Loading suggestions…' : 'Search for something to watch'}</div>`;
+    if (tab === 'related') send({ type: 'related' });
+  }
+  $('tabSearch').addEventListener('click', () => setTab('search'));
+  $('tabRelated').addEventListener('click', () => setTab('related'));
+
+  // laptop actions (with confirm)
+  let confirmCb = null;
+  function confirmAsk(text, cb) {
+    $('confirmText').textContent = text;
+    confirmCb = cb;
+    $('confirmOverlay').classList.add('show');
+  }
+  $('confirmNo').addEventListener('click', () => $('confirmOverlay').classList.remove('show'));
+  $('confirmYes').addEventListener('click', () => { $('confirmOverlay').classList.remove('show'); confirmCb && confirmCb(); });
+  $('monitorBtn').addEventListener('click', () => { buzz(); send({ type: 'os', action: 'monitor' }); });
+  $('sleepBtn').addEventListener('click', () => confirmAsk('Pause and put the laptop to sleep now?', () => send({ type: 'os', action: 'sleep' })));
+
+  // dim
+  const applyDim = () => document.body.classList.toggle('dim', store.get('dim') === '1');
+  $('dimBtn').addEventListener('click', () => { store.set('dim', store.get('dim') === '1' ? '0' : '1'); applyDim(); });
+  applyDim();
+
+  // toast
+  let toastTimer = null;
+  function toast(text) {
+    const t = $('toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  render();
+  renderTimer();
+  connect();
+})();
+</script>
+</body>
+</html>

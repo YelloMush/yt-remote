@@ -1,0 +1,14 @@
+{
+  "name": "yt-remote-server",
+  "version": "1.0.0",
+  "description": "Local relay server for the YouTube bed remote",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "qrcode-terminal": "^0.12.0",
+    "ws": "^8.18.0"
+  }
+}
